@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "siteConfig": {
+      ".read": true,
+      ".write": "auth != null && auth.token.admin === true"
+    },
+    "siteConfigVersions": {
+      ".read": true,
+      ".write": "auth != null && auth.token.admin === true"
+    },
+    "products": {
+      ".read": true,
+      ".write": "auth != null && auth.token.admin === true"
+    },
+    "orders": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.admin === true)",
+        ".write": "auth != null && (auth.uid === $uid || auth.token.admin === true)"
+      }
+    }
+  }
+} 
