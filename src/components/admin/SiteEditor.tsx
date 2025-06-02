@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSiteConfig } from '@/contexts/SiteConfigContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -97,10 +97,38 @@ const SiteEditor: React.FC = () => {
   const [versionLabel, setVersionLabel] = useState('');
   const [showVersionDialog, setShowVersionDialog] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [formData, setFormData] = useState(config);
+
+  useEffect(() => {
+    setFormData(config);
+  }, [config]);
+
+  const handleInputChange = (section: keyof SiteConfig, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleNestedInputChange = (section: keyof SiteConfig, subSection: string, field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [subSection]: {
+          ...(prev[section] as any)[subSection],
+          [field]: value
+        }
+      }
+    }));
+  };
 
   const handleSaveVersion = async () => {
     try {
-      if (!config) {
+      if (!formData) {
         toast.error('لا يوجد تكوين لحفظه');
         return;
       }
@@ -112,21 +140,21 @@ const SiteEditor: React.FC = () => {
 
       // التحقق من صحة البريد الإلكتروني
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(config.footer.contactInfo.email)) {
+      if (!emailRegex.test(formData.footer.contactInfo.email)) {
         toast.error('البريد الإلكتروني غير صالح');
         return;
       }
 
       // التحقق من صحة رقم الهاتف
       const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
-      if (!phoneRegex.test(config.footer.contactInfo.phone)) {
+      if (!phoneRegex.test(formData.footer.contactInfo.phone)) {
         toast.error('رقم الهاتف غير صالح');
         return;
       }
 
       // التحقق من صحة روابط التواصل الاجتماعي
       const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
-      const socialLinks = config.footer.socialLinks;
+      const socialLinks = formData.footer.socialLinks;
       if (!urlRegex.test(socialLinks.facebook)) {
         toast.error('رابط فيسبوك غير صالح');
         return;
@@ -141,7 +169,7 @@ const SiteEditor: React.FC = () => {
       }
 
       // التحقق من صحة رابط صورة صفحة من نحن
-      if (config.about.image && !urlRegex.test(config.about.image)) {
+      if (formData.about.image && !urlRegex.test(formData.about.image)) {
         toast.error('رابط صورة صفحة من نحن غير صالح');
         return;
       }
@@ -150,7 +178,7 @@ const SiteEditor: React.FC = () => {
         id: Date.now().toString(),
         label: versionLabel,
         timestamp: new Date().toISOString(),
-        config
+        config: formData
       };
 
       await saveVersion(version.label);
@@ -164,12 +192,16 @@ const SiteEditor: React.FC = () => {
   };
 
   const handleColorChange = (colorType: 'primary' | 'secondary' | 'accent', value: string) => {
-    const colors = { ...config.colors, [colorType]: value };
+    const colors = { ...formData.colors, [colorType]: value };
     if (previewMode) {
       updatePreviewConfig({ colors });
     } else {
       updateConfig({ colors });
     }
+  };
+
+  const handleSave = async () => {
+    await updateConfig(formData);
   };
 
   if (isLoading) {
@@ -275,42 +307,28 @@ const SiteEditor: React.FC = () => {
                 <Label htmlFor="hero-title">العنوان الرئيسي</Label>
                 <Input
                   id="hero-title"
-                  value={config.hero.title}
-                  onChange={(e) => {
-                    const newHero = { ...config.hero, title: e.target.value };
-                    if (previewMode) {
-                      updatePreviewConfig({ hero: newHero });
-                    } else {
-                      updateConfig({ hero: newHero });
-                    }
-                  }}
+                  value={formData.hero.title}
+                  onChange={(e) => handleInputChange('hero', 'title', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="hero-subtitle">العنوان الفرعي</Label>
                 <Input
                   id="hero-subtitle"
-                  value={config.hero.subtitle}
-                  onChange={(e) => {
-                    const newHero = { ...config.hero, subtitle: e.target.value };
-                    if (previewMode) {
-                      updatePreviewConfig({ hero: newHero });
-                    } else {
-                      updateConfig({ hero: newHero });
-                    }
-                  }}
+                  value={formData.hero.subtitle}
+                  onChange={(e) => handleInputChange('hero', 'subtitle', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>الميزات</Label>
-                {config.hero.features.map((feature, index) => (
+                {formData.hero.features.map((feature, index) => (
                   <div key={index} className="flex gap-2 items-center">
                     <Input
                       value={feature.icon}
                       onChange={(e) => {
-                        const newFeatures = [...config.hero.features];
+                        const newFeatures = [...formData.hero.features];
                         newFeatures[index] = { ...feature, icon: e.target.value };
-                        const newHero = { ...config.hero, features: newFeatures };
+                        const newHero = { ...formData.hero, features: newFeatures };
                         if (previewMode) {
                           updatePreviewConfig({ hero: newHero });
                         } else {
@@ -323,9 +341,9 @@ const SiteEditor: React.FC = () => {
                     <Input
                       value={feature.text}
                       onChange={(e) => {
-                        const newFeatures = [...config.hero.features];
+                        const newFeatures = [...formData.hero.features];
                         newFeatures[index] = { ...feature, text: e.target.value };
-                        const newHero = { ...config.hero, features: newFeatures };
+                        const newHero = { ...formData.hero, features: newFeatures };
                         if (previewMode) {
                           updatePreviewConfig({ hero: newHero });
                         } else {
@@ -354,15 +372,8 @@ const SiteEditor: React.FC = () => {
                 <Label htmlFor="footer-about">نبذة عن المتجر</Label>
                 <Textarea
                   id="footer-about"
-                  value={config.footer.about}
-                  onChange={(e) => {
-                    const newFooter = { ...config.footer, about: e.target.value };
-                    if (previewMode) {
-                      updatePreviewConfig({ footer: newFooter });
-                    } else {
-                      updateConfig({ footer: newFooter });
-                    }
-                  }}
+                  value={formData.footer.about}
+                  onChange={(e) => handleInputChange('footer', 'about', e.target.value)}
                   rows={3}
                 />
               </div>
@@ -374,48 +385,24 @@ const SiteEditor: React.FC = () => {
                     <Label htmlFor="contact-address">العنوان</Label>
                     <Input
                       id="contact-address"
-                      value={config.footer.contactInfo.address}
-                      onChange={(e) => {
-                        const newContactInfo = { ...config.footer.contactInfo, address: e.target.value };
-                        const newFooter = { ...config.footer, contactInfo: newContactInfo };
-                        if (previewMode) {
-                          updatePreviewConfig({ footer: newFooter });
-                        } else {
-                          updateConfig({ footer: newFooter });
-                        }
-                      }}
+                      value={formData.footer.contactInfo.address}
+                      onChange={(e) => handleNestedInputChange('footer', 'contactInfo', 'address', e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="contact-email">البريد الإلكتروني</Label>
                     <Input
                       id="contact-email"
-                      value={config.footer.contactInfo.email}
-                      onChange={(e) => {
-                        const newContactInfo = { ...config.footer.contactInfo, email: e.target.value };
-                        const newFooter = { ...config.footer, contactInfo: newContactInfo };
-                        if (previewMode) {
-                          updatePreviewConfig({ footer: newFooter });
-                        } else {
-                          updateConfig({ footer: newFooter });
-                        }
-                      }}
+                      value={formData.footer.contactInfo.email}
+                      onChange={(e) => handleNestedInputChange('footer', 'contactInfo', 'email', e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="contact-phone">رقم الهاتف</Label>
                     <Input
                       id="contact-phone"
-                      value={config.footer.contactInfo.phone}
-                      onChange={(e) => {
-                        const newContactInfo = { ...config.footer.contactInfo, phone: e.target.value };
-                        const newFooter = { ...config.footer, contactInfo: newContactInfo };
-                        if (previewMode) {
-                          updatePreviewConfig({ footer: newFooter });
-                        } else {
-                          updateConfig({ footer: newFooter });
-                        }
-                      }}
+                      value={formData.footer.contactInfo.phone}
+                      onChange={(e) => handleNestedInputChange('footer', 'contactInfo', 'phone', e.target.value)}
                     />
                   </div>
                 </div>
@@ -428,16 +415,8 @@ const SiteEditor: React.FC = () => {
                     <Label htmlFor="social-facebook">فيسبوك</Label>
                     <Input
                       id="social-facebook"
-                      value={config.footer.socialLinks.facebook}
-                      onChange={(e) => {
-                        const newSocialLinks = { ...config.footer.socialLinks, facebook: e.target.value };
-                        const newFooter = { ...config.footer, socialLinks: newSocialLinks };
-                        if (previewMode) {
-                          updatePreviewConfig({ footer: newFooter });
-                        } else {
-                          updateConfig({ footer: newFooter });
-                        }
-                      }}
+                      value={formData.footer.socialLinks.facebook}
+                      onChange={(e) => handleNestedInputChange('footer', 'socialLinks', 'facebook', e.target.value)}
                       placeholder="رابط فيسبوك"
                     />
                   </div>
@@ -445,16 +424,8 @@ const SiteEditor: React.FC = () => {
                     <Label htmlFor="social-instagram">انستغرام</Label>
                     <Input
                       id="social-instagram"
-                      value={config.footer.socialLinks.instagram}
-                      onChange={(e) => {
-                        const newSocialLinks = { ...config.footer.socialLinks, instagram: e.target.value };
-                        const newFooter = { ...config.footer, socialLinks: newSocialLinks };
-                        if (previewMode) {
-                          updatePreviewConfig({ footer: newFooter });
-                        } else {
-                          updateConfig({ footer: newFooter });
-                        }
-                      }}
+                      value={formData.footer.socialLinks.instagram}
+                      onChange={(e) => handleNestedInputChange('footer', 'socialLinks', 'instagram', e.target.value)}
                       placeholder="رابط انستغرام"
                     />
                   </div>
@@ -462,16 +433,8 @@ const SiteEditor: React.FC = () => {
                     <Label htmlFor="social-twitter">تويتر</Label>
                     <Input
                       id="social-twitter"
-                      value={config.footer.socialLinks.twitter}
-                      onChange={(e) => {
-                        const newSocialLinks = { ...config.footer.socialLinks, twitter: e.target.value };
-                        const newFooter = { ...config.footer, socialLinks: newSocialLinks };
-                        if (previewMode) {
-                          updatePreviewConfig({ footer: newFooter });
-                        } else {
-                          updateConfig({ footer: newFooter });
-                        }
-                      }}
+                      value={formData.footer.socialLinks.twitter}
+                      onChange={(e) => handleNestedInputChange('footer', 'socialLinks', 'twitter', e.target.value)}
                       placeholder="رابط تويتر"
                     />
                   </div>
@@ -493,45 +456,24 @@ const SiteEditor: React.FC = () => {
                 <Label htmlFor="about-title">العنوان الرئيسي</Label>
                 <Input
                   id="about-title"
-                  value={config.about.title}
-                  onChange={(e) => {
-                    const newAbout = { ...config.about, title: e.target.value };
-                    if (previewMode) {
-                      updatePreviewConfig({ about: newAbout });
-                    } else {
-                      updateConfig({ about: newAbout });
-                    }
-                  }}
+                  value={formData.about.title}
+                  onChange={(e) => handleInputChange('about', 'title', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="about-subtitle">العنوان الفرعي</Label>
                 <Input
                   id="about-subtitle"
-                  value={config.about.subtitle}
-                  onChange={(e) => {
-                    const newAbout = { ...config.about, subtitle: e.target.value };
-                    if (previewMode) {
-                      updatePreviewConfig({ about: newAbout });
-                    } else {
-                      updateConfig({ about: newAbout });
-                    }
-                  }}
+                  value={formData.about.subtitle}
+                  onChange={(e) => handleInputChange('about', 'subtitle', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="about-content">المحتوى</Label>
                 <Textarea
                   id="about-content"
-                  value={config.about.content}
-                  onChange={(e) => {
-                    const newAbout = { ...config.about, content: e.target.value };
-                    if (previewMode) {
-                      updatePreviewConfig({ about: newAbout });
-                    } else {
-                      updateConfig({ about: newAbout });
-                    }
-                  }}
+                  value={formData.about.content}
+                  onChange={(e) => handleInputChange('about', 'content', e.target.value)}
                   rows={6}
                 />
               </div>
@@ -539,15 +481,8 @@ const SiteEditor: React.FC = () => {
                 <Label htmlFor="about-image">رابط الصورة</Label>
                 <Input
                   id="about-image"
-                  value={config.about.image}
-                  onChange={(e) => {
-                    const newAbout = { ...config.about, image: e.target.value };
-                    if (previewMode) {
-                      updatePreviewConfig({ about: newAbout });
-                    } else {
-                      updateConfig({ about: newAbout });
-                    }
-                  }}
+                  value={formData.about.image}
+                  onChange={(e) => handleInputChange('about', 'image', e.target.value)}
                 />
               </div>
             </CardContent>
@@ -569,12 +504,12 @@ const SiteEditor: React.FC = () => {
                     <Input
                       id="primary-color"
                       type="color"
-                      value={config.colors.primary}
+                      value={formData.colors.primary}
                       onChange={(e) => handleColorChange('primary', e.target.value)}
                       className="w-12 h-10 p-1"
                     />
                     <Input
-                      value={config.colors.primary}
+                      value={formData.colors.primary}
                       onChange={(e) => handleColorChange('primary', e.target.value)}
                       className="flex-1"
                     />
@@ -586,12 +521,12 @@ const SiteEditor: React.FC = () => {
                     <Input
                       id="secondary-color"
                       type="color"
-                      value={config.colors.secondary}
+                      value={formData.colors.secondary}
                       onChange={(e) => handleColorChange('secondary', e.target.value)}
                       className="w-12 h-10 p-1"
                     />
                     <Input
-                      value={config.colors.secondary}
+                      value={formData.colors.secondary}
                       onChange={(e) => handleColorChange('secondary', e.target.value)}
                       className="flex-1"
                     />
@@ -603,12 +538,12 @@ const SiteEditor: React.FC = () => {
                     <Input
                       id="accent-color"
                       type="color"
-                      value={config.colors.accent}
+                      value={formData.colors.accent}
                       onChange={(e) => handleColorChange('accent', e.target.value)}
                       className="w-12 h-10 p-1"
                     />
                     <Input
-                      value={config.colors.accent}
+                      value={formData.colors.accent}
                       onChange={(e) => handleColorChange('accent', e.target.value)}
                       className="flex-1"
                     />
@@ -686,6 +621,16 @@ const SiteEditor: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="bg-primary text-white px-6 py-2 rounded-lg disabled:opacity-50"
+        >
+          {isSaving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+        </button>
+      </div>
     </div>
   );
 };

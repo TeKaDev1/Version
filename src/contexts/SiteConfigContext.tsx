@@ -8,6 +8,10 @@ interface SiteConfig {
   hero: {
     title: string;
     subtitle: string;
+    description: string;
+    backgroundImage: string;
+    primaryButtonText: string;
+    secondaryButtonText: string;
     features: Array<{
       icon: string;
       text: string;
@@ -69,6 +73,10 @@ const defaultConfig: SiteConfig = {
   hero: {
     title: 'تسوق بكل سهولة',
     subtitle: 'من أي مكان',
+    description: 'اكتشف مجموعتنا الواسعة من المنتجات عالية الجودة بأسعار مناسبة',
+    backgroundImage: '/images/hero-bg.jpg',
+    primaryButtonText: 'تسوق الآن',
+    secondaryButtonText: 'تعرف علينا',
     features: [
       { icon: 'ShoppingBag', text: 'توصيل سريع' },
       { icon: 'Star', text: 'جودة ممتازة' },
