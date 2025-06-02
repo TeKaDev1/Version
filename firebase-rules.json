@@ -1,0 +1,47 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "products": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "categories": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "cities": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "orders": {
+      ".indexOn": ["phoneNumber", "id"],
+      ".read": "(auth != null) || (query.orderByChild == 'phoneNumber' && query.equalTo != null && query.equalTo != '')",
+      ".write": "(auth != null) || (!data.exists() && newData.hasChildren(['id', 'name', 'phoneNumber', 'city', 'address', 'items', 'total', 'status', 'date']))",
+      "$orderId": {
+        ".read": true
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "newsletterSubscribers": {
+      ".read": "auth != null",
+      ".write": true,
+      "$subscriberId": {
+        ".validate": "newData.hasChildren(['email', 'subscribedAt'])"
+      }
+    },
+    "sentNewsletters": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "productStats": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+} 
