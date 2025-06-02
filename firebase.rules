@@ -1,5 +1,7 @@
 {
   "rules": {
+    ".read": false,
+    ".write": false,
     "siteConfig": {
       ".read": true,
       ".write": "auth != null && auth.token.admin === true"
@@ -12,15 +14,42 @@
       ".read": true,
       ".write": "auth != null && auth.token.admin === true"
     },
+    "categories": {
+      ".read": true,
+      ".write": "auth != null && auth.token.admin === true"
+    },
+    "cities": {
+      ".read": true,
+      ".write": "auth != null && auth.token.admin === true"
+    },
     "orders": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      ".indexOn": ["phoneNumber", "id"],
+      ".read": "(auth != null) || (query.orderByChild == 'phoneNumber' && query.equalTo != null && query.equalTo != '')",
+      ".write": "(auth != null) || (!data.exists() && newData.hasChildren(['id', 'name', 'phoneNumber', 'city', 'address', 'items', 'total', 'status', 'date']))",
+      "$orderId": {
+        ".read": true
+      }
     },
     "users": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || auth.token.admin === true)",
         ".write": "auth != null && (auth.uid === $uid || auth.token.admin === true)"
       }
+    },
+    "newsletterSubscribers": {
+      ".read": "auth != null",
+      ".write": true,
+      "$subscriberId": {
+        ".validate": "newData.hasChildren(['email', 'subscribedAt'])"
+      }
+    },
+    "sentNewsletters": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "productStats": {
+      ".read": "auth != null",
+      ".write": "auth != null"
     }
   }
 } 
